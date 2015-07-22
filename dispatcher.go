@@ -40,14 +40,10 @@ func (d *Dispatcher) Run(quit chan bool) {
 		d.Workers <- w
 	}
 
-	d.wg.Add(1)
-	go d.dispatch()
-	d.wg.Wait()
+	d.dispatch()
 }
 
 func (d *Dispatcher) dispatch() {
-	defer d.wg.Done()
-
 	for {
 		select {
 		case job := <-d.jobsQueue:
@@ -61,12 +57,18 @@ func (d *Dispatcher) dispatch() {
 				jobChannel <- job
 			}(job)
 		case <-d.quit:
-			for i := 0; i < d.maxWorkers; i++ {
-				w := <-d.Workers
-				w.Stop()
-			}
+			d.stopWorkers()
 			return
 		}
+	}
+
+	d.wg.Wait()
+}
+
+func (d *Dispatcher) stopWorkers() {
+	for i := 0; i < d.maxWorkers; i++ {
+		w := <-d.Workers
+		w.Stop()
 	}
 }
 
