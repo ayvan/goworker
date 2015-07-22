@@ -18,7 +18,7 @@ func NewWorker(num int, workerPool chan chan GoJob) Worker {
 		WorkerPool: workerPool,
 		JobChannel: make(chan GoJob),
 		quit:       make(chan bool),
-		num: num,
+		num:        num,
 	}
 }
 
@@ -32,8 +32,8 @@ func (w *Worker) Start(wg *sync.WaitGroup) {
 			// register the current worker into the worker queue.
 			w.WorkerPool <- w.JobChannel
 			select {
-				case job := <-w.JobChannel:
-			// we have received a work request.
+			case job := <-w.JobChannel:
+				// we have received a work request.
 				job.DoIt()
 
 			case <-w.quit:
