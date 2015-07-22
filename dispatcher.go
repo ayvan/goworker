@@ -1,37 +1,47 @@
 package goworker
 
 import (
+	"fmt"
 	"sync"
 )
 
 // Dispatcher starts workers and route jobs for it
 type Dispatcher struct {
 	// A pool of workers channels that are registered with the goworker
-	WorkerPool chan chan GoJob
-	Workers    chan *Worker
-	maxWorkers int
-	jobsQueue  chan GoJob
-	quit       chan bool
-	wg         *sync.WaitGroup
+	WorkerPool      chan chan GoJob
+	Workers         chan *Worker
+	maxWorkers      int
+	jobsQueue       chan GoJob
+	unperformedJobs []GoJob
+	stop            chan bool
+	stopped         chan bool
+	wg              *sync.WaitGroup
+	stopInProgress  bool
 }
 
 // NewDispatcher construct new Dispatcher
 func NewDispatcher(maxWorkers int, jobsQueueSize uint) *Dispatcher {
 	jobsQueue := make(chan GoJob, jobsQueueSize)
+	var unperformedJobs []GoJob // when stop copy all jobs from jobsQueue to unperformedJobs
 	pool := make(chan chan GoJob, maxWorkers)
 	workers := make(chan *Worker, maxWorkers)
 	return &Dispatcher{
-		WorkerPool: pool,
-		Workers:    workers,
-		maxWorkers: maxWorkers,
-		jobsQueue:  jobsQueue,
-		quit:       make(chan bool, 1),
-		wg:         &sync.WaitGroup{},
+		WorkerPool:      pool,
+		Workers:         workers,
+		maxWorkers:      maxWorkers,
+		jobsQueue:       jobsQueue,
+		unperformedJobs: unperformedJobs,
+		stop:            make(chan bool, 1),
+		stopped:         make(chan bool, 1),
+		wg:              &sync.WaitGroup{},
+		stopInProgress:  false,
 	}
 }
 
-// Run dispatcher with quit channel
+// Run dispatcher
 func (d *Dispatcher) Run() {
+	// clean
+	d.CleanUnperformedJobs()
 	// starting n number of workers
 	for i := 0; i < d.maxWorkers; i++ {
 		w := NewWorker(i, d.WorkerPool)
@@ -43,39 +53,80 @@ func (d *Dispatcher) Run() {
 }
 
 func (d *Dispatcher) dispatch() {
+	defer func() {
+		d.stopWorkers()
+
+		d.wg.Wait()
+
+		// move all jobs from input channel to unperformedJobs
+		if len(d.jobsQueue) > 0 {
+			for j := range d.jobsQueue {
+				d.unperformedJobs = append(d.unperformedJobs, j)
+				if len(d.jobsQueue) == 0 {
+					break
+				}
+			}
+		}
+
+		d.stopInProgress = false
+		d.stopped <- true
+	}()
+
 	for {
 		select {
+		// a job request has been received
 		case job := <-d.jobsQueue:
-			// a job request has been received
-			go func(job GoJob) {
-				// try to obtain a worker job channel that is available.
-				// this will block until a worker is idle
-				jobChannel := <-d.WorkerPool
-
+			select {
+			// try to obtain a worker job channel that is available.
+			// this will block until a worker is idle
+			case jobChannel := <-d.WorkerPool:
 				// dispatch the job to the worker job channel
 				jobChannel <- job
-			}(job)
-		case <-d.quit:
-			d.stopWorkers()
+			case <-d.stop:
+				// if need to exit save current job to unperformedJobs
+				d.unperformedJobs = append(d.unperformedJobs, job)
+				return
+			}
+		case <-d.stop:
 			return
 		}
 	}
-
-	d.wg.Wait()
 }
 
 func (d *Dispatcher) stopWorkers() {
-	for i := 0; i < d.maxWorkers; i++ {
-		w := <-d.Workers
+	for w := range d.Workers {
 		w.Stop()
+		if len(d.Workers) == 0 {
+			return
+		}
 	}
 }
 
 // AddJob adds new job to dispatcher
-func (d *Dispatcher) AddJob(job GoJob) {
+func (d *Dispatcher) AddJob(job GoJob) error {
+	// you can't write new jobs when Stop() in progress, after Stop() fully complete you can add new job and Start() again
+	if d.stopInProgress {
+		return fmt.Errorf("Error, dispatcher Stop() in progress!")
+	}
+
 	d.jobsQueue <- job
+
+	return nil
 }
 
+// Stop dispatcher
 func (d *Dispatcher) Stop() {
-	d.quit <- true
+	d.stopInProgress = true
+	d.stop <- true
+	<-d.stopped
+}
+
+// GetUnperformedJobs method returns a chan of GoJobs that have not been done before Stop() executed
+func (d *Dispatcher) GetUnperformedJobs() []GoJob {
+	return d.unperformedJobs
+}
+
+// CleanUnperformedJobs remove unperformedJobs
+func (d *Dispatcher) CleanUnperformedJobs() {
+	d.unperformedJobs = make([]GoJob, 0)
 }
