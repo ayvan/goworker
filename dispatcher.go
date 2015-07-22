@@ -1,8 +1,8 @@
 package goworker
 
 import (
-	"fmt"
 	"sync"
+	"time"
 )
 
 // Dispatcher starts workers and route jobs for it
@@ -103,15 +103,19 @@ func (d *Dispatcher) stopWorkers() {
 }
 
 // AddJob adds new job to dispatcher
-func (d *Dispatcher) AddJob(job GoJob) error {
-	// you can't write new jobs when Stop() in progress, after Stop() fully complete you can add new job and Start() again
-	if d.stopInProgress {
-		return fmt.Errorf("Error, dispatcher Stop() in progress!")
+func (d *Dispatcher) AddJob(job GoJob) {
+	// add job to dispatcher, it's check is dispatcher Stop() in progress and try again
+
+	// If method d.Stop() called you can't add new jobs before Stop() successfully completed
+	// It's required for moving jobs from input channel to unperformedJobs when dispatcher Stop() method called.
+	for {
+		// loop while stopInProgress
+		if d.stopInProgress == false {
+			d.jobsQueue <- job
+			break
+		}
+		time.Sleep(time.Microsecond)
 	}
-
-	d.jobsQueue <- job
-
-	return nil
 }
 
 // Stop dispatcher
@@ -129,4 +133,8 @@ func (d *Dispatcher) GetUnperformedJobs() []GoJob {
 // CleanUnperformedJobs remove unperformedJobs
 func (d *Dispatcher) CleanUnperformedJobs() {
 	d.unperformedJobs = make([]GoJob, 0)
+}
+
+func (d *Dispatcher) CountJobs() int {
+	return len(d.jobsQueue)
 }

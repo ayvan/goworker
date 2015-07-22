@@ -54,6 +54,9 @@ func TestMain(t *testing.T) {
 			d.unperformedJobs = append(d.unperformedJobs, j)
 		}
 
+		// count jobs
+		assert.Equal(t, 0, d.CountJobs())
+
 		// stop dispatcher
 		d.Stop()
 
@@ -69,6 +72,14 @@ func TestMain(t *testing.T) {
 		// assert len of jobs in dispatcher and in slice
 		assert.Equal(t, 0, len(d.GetUnperformedJobs()))
 		assert.Equal(t, 20, len(uJ))
+
+		// add unperformed jobs again
+		for _, job := range uJ {
+			d.AddJob(job)
+		}
+
+		// count jobs
+		assert.Equal(t, 20, d.CountJobs())
 	}()
 
 	// start dispatcher

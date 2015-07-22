@@ -69,21 +69,6 @@ func main() {
 }
 ```
 
-If method d.Stop() called you can't add new jobs before Stop() successfully completed, and AddJob() method return error.
-It's required for moving jobs from input channel to unperformedJobs when dispatcher Stop() method called.
-
-For example:
-
-```
-// add job to dispatcher, it's check is dispatcher Stop() in progress and try again
-for {
-	if err := d.AddJob(j); err == nil {
-		break
-	}
-	time.Sleep(time.Millisecond)
-}
-```
-
 If you want to get unperformed jobs after d.Stop() use d.GetUnperformedJobs() method:
 
 ```
