@@ -23,9 +23,6 @@ func (j *Job) DoIt() {
 }
 
 func TestMain(t *testing.T) {
-
-	quit := make(chan bool, 1)
-
 	// start dispatcher with 10 workers (goroutines) and jobsQueue channel size 20
 	d := NewDispatcher(10, 20)
 
@@ -53,11 +50,11 @@ func TestMain(t *testing.T) {
 			assert.Equal(t, j.SomeJobData, j.SomeJobResult)
 		}
 
-		// quit
-		quit <- true
+		// stop dispatcher
+		d.Stop()
 	}()
 
 	// start dispatcher
-	d.Run(quit)
+	d.Run()
 
 }

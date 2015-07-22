@@ -25,14 +25,13 @@ func NewDispatcher(maxWorkers int, jobsQueueSize uint) *Dispatcher {
 		Workers:    workers,
 		maxWorkers: maxWorkers,
 		jobsQueue:  jobsQueue,
+		quit:       make(chan bool, 1),
 		wg:         &sync.WaitGroup{},
 	}
 }
 
 // Run dispatcher with quit channel
-func (d *Dispatcher) Run(quit chan bool) {
-	d.quit = quit
-
+func (d *Dispatcher) Run() {
 	// starting n number of workers
 	for i := 0; i < d.maxWorkers; i++ {
 		w := NewWorker(i, d.WorkerPool)
@@ -75,4 +74,8 @@ func (d *Dispatcher) stopWorkers() {
 // AddJob adds new job to dispatcher
 func (d *Dispatcher) AddJob(job GoJob) {
 	d.jobsQueue <- job
+}
+
+func (d *Dispatcher) Stop() {
+	d.quit <- true
 }
