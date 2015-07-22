@@ -1,5 +1,7 @@
 # goworker
 
+[![Build Status](https://travis-ci.org/Ayvan/goworker.svg?branch=master)](https://travis-ci.org/Ayvan/goworker)
+
 Based on http://marcio.io/2015/07/handling-1-million-requests-per-minute-with-golang/
 
 ### Example:
