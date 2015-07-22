@@ -8,11 +8,11 @@ import (
 type Dispatcher struct {
 	// A pool of workers channels that are registered with the goworker
 	WorkerPool chan chan GoJob
-	Workers chan *Worker
+	Workers    chan *Worker
 	maxWorkers int
-	jobsQueue chan GoJob
-	quit chan bool
-	wg *sync.WaitGroup
+	jobsQueue  chan GoJob
+	quit       chan bool
+	wg         *sync.WaitGroup
 }
 
 // NewDispatcher construct new Dispatcher
@@ -22,10 +22,10 @@ func NewDispatcher(maxWorkers int, jobsQueueSize uint) *Dispatcher {
 	workers := make(chan *Worker, maxWorkers)
 	return &Dispatcher{
 		WorkerPool: pool,
-		Workers: workers,
+		Workers:    workers,
 		maxWorkers: maxWorkers,
-		jobsQueue: jobsQueue,
-		wg: &sync.WaitGroup{},
+		jobsQueue:  jobsQueue,
+		wg:         &sync.WaitGroup{},
 	}
 }
 
@@ -51,7 +51,7 @@ func (d *Dispatcher) dispatch() {
 	for {
 		select {
 		case job := <-d.jobsQueue:
-		// a job request has been received
+			// a job request has been received
 			go func(job GoJob) {
 				// try to obtain a worker job channel that is available.
 				// this will block until a worker is idle
@@ -62,7 +62,7 @@ func (d *Dispatcher) dispatch() {
 			}(job)
 		case <-d.quit:
 			for i := 0; i < d.maxWorkers; i++ {
-				w := <- d.Workers
+				w := <-d.Workers
 				w.Stop()
 			}
 			return

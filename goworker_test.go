@@ -2,9 +2,9 @@ package goworker
 
 import (
 	"fmt"
-	"testing"
 	"github.com/stretchr/testify/assert"
 	"runtime"
+	"testing"
 )
 
 // Job structure
@@ -32,7 +32,7 @@ func TestMain(t *testing.T) {
 	allJobs := make([]*Job, 20)
 
 	// add jobs to channel
-	for i := 0; i<20; i++ {
+	for i := 0; i < 20; i++ {
 		j := &Job{
 			SomeJobData: "job number" + fmt.Sprintf("%d", i),
 		}
@@ -59,7 +59,5 @@ func TestMain(t *testing.T) {
 
 	// start dispatcher
 	d.Run(quit)
-
-
 
 }
