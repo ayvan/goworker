@@ -37,7 +37,7 @@ func (d *Dispatcher) Run(quit chan bool) {
 	for i := 0; i < d.maxWorkers; i++ {
 		w := NewWorker(i, d.WorkerPool)
 		w.Start(d.wg)
-		d.Workers <- &w
+		d.Workers <- w
 	}
 
 	d.wg.Add(1)
