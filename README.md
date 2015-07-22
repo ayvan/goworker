@@ -11,7 +11,7 @@ package main
 
 import (
 	"fmt"
-	"goworker"
+	"github.com/Ayvan/goworker"
 	"log"
 	"os"
 	"os/signal"
