@@ -22,7 +22,7 @@ func (j *Job) DoIt() {
 	j.Done = true
 }
 
-func TestMain(t *testing.T) {
+func TestGoWorker(t *testing.T) {
 	// start dispatcher with 10 workers (goroutines) and jobsQueue channel size 20
 	d := NewDispatcher(10, 20)
 
