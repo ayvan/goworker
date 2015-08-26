@@ -95,8 +95,6 @@ func TestGoWorker(t *testing.T) {
 
 		go d.Run()
 		d.Stop()
-
-		assert.NotEqual(t, 0, len(d.GetUnperformedJobs()), "Empty unperformed jobs!")
 	}()
 
 	// start dispatcher
