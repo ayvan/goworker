@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"runtime"
+	"sync"
 	"testing"
 )
 
@@ -28,7 +29,13 @@ func TestGoWorker(t *testing.T) {
 
 	allJobs := make([]*Job, 20)
 
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+
 	go func() {
+		defer func() {
+			wg.Done()
+		}()
 		// add jobs to channel
 		for i := 0; i < 20; i++ {
 			j := &Job{
@@ -50,8 +57,11 @@ func TestGoWorker(t *testing.T) {
 			}
 			assert.Equal(t, j.SomeJobData, j.SomeJobResult)
 
+			uj := new(Job)
+			*uj = *j
+			uj.Done = false
 			// for testing unperformed jobs methods
-			d.unperformedJobs = append(d.unperformedJobs, j)
+			d.unperformedJobs = append(d.unperformedJobs, uj)
 		}
 
 		// count jobs
@@ -74,15 +84,23 @@ func TestGoWorker(t *testing.T) {
 		assert.Equal(t, 20, len(uJ))
 
 		// add unperformed jobs again
-		for _, job := range uJ {
-			d.AddJob(job)
+		for i, job := range uJ {
+			allJobs[i] = job.(*Job)
+
+			// simulate highload to stop dispatcher when jobs queue not empty
+			for i := 0; i < 1000; i++ {
+				go d.AddJob(job)
+			}
 		}
 
-		// count jobs
-		assert.Equal(t, 20, d.CountJobs())
+		go d.Run()
+		d.Stop()
+
+		assert.NotEqual(t, 0, len(d.GetUnperformedJobs()), "Empty unperformed jobs!")
 	}()
 
 	// start dispatcher
 	d.Run()
 
+	wg.Wait()
 }

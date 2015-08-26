@@ -94,6 +94,15 @@ func (d *Dispatcher) dispatch() {
 }
 
 func (d *Dispatcher) stopWorkers() {
+	defer func() {
+		// clear WorkerPool
+		for _ = range d.WorkerPool {
+			if len(d.WorkerPool) == 0 {
+				return
+			}
+		}
+	}()
+
 	for w := range d.Workers {
 		w.Stop()
 		if len(d.Workers) == 0 {
