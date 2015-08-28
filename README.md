@@ -1,6 +1,6 @@
 # goworker
 
-[![Build Status](https://travis-ci.org/Ayvan/goworker.svg?branch=master)](https://travis-ci.org/Ayvan/goworker)
+[![Build Status](https://travis-ci.org/Ayvan/goworker.svg?branch=master)](https://travis-ci.org/Ayvan/goworker) [![Coverage Status](https://coveralls.io/repos/Ayvan/goworker/badge.svg?branch=master&service=github)](https://coveralls.io/github/Ayvan/goworker?branch=master)
 
 Based on http://marcio.io/2015/07/handling-1-million-requests-per-minute-with-golang/
 
